@@ -1,0 +1,8 @@
+{
+  "name": "The Café Companion: Cloud-Native AI Platform",
+  "description": "Enterprise cloud-native event-driven café platform powered by Google Cloud & Gemini AI, featuring conversational ordering, wait-time prediction, room sentiment pulse, community serendipity, and agentic demand forecasting.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

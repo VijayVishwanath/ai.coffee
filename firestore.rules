@@ -1,0 +1,106 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny all unknown paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // User Profile Validation
+    function isValidUser(data) {
+      return data.uid is string && data.uid.size() <= 128 && data.uid == request.auth.uid
+        && data.email is string && data.email.size() <= 255
+        && (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 100))
+        && (!('role' in data) || (data.role in ['guest', 'barista', 'manager']));
+    }
+
+    // Order Validation
+    function isValidOrder(data) {
+      return data.id is string && data.id.size() <= 64
+        && data.userId is string && data.userId.size() <= 128
+        && data.totalAmount is number && data.totalAmount >= 0
+        && data.status in ['received', 'queued', 'brewing', 'ready', 'completed'];
+    }
+
+    // Community Presence Validation
+    function isValidCommunity(data) {
+      return data.userId is string && data.userId.size() <= 128 && data.userId == request.auth.uid
+        && data.name is string && data.name.size() <= 100
+        && data.tableZone is string && data.tableZone.size() <= 100;
+    }
+
+    // Room Feedback Validation
+    function isValidFeedback(data) {
+      return data.id is string && data.id.size() <= 64
+        && data.feedbackText is string && data.feedbackText.size() <= 500;
+    }
+
+    // Customer Arrival Check-In Validation
+    function isValidCheckIn(data) {
+      return data.id is string && data.id.size() <= 64
+        && data.customerName is string && data.customerName.size() <= 100
+        && data.arrivalTime is string && data.arrivalTime.size() <= 50
+        && data.status in ['active', 'departed'];
+    }
+
+    // Collections
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow create, update: if isValidId(userId) && isOwner(userId) && isValidUser(incoming());
+      allow delete: if isValidId(userId) && (isOwner(userId) || isAdmin());
+    }
+
+    match /orders/{orderId} {
+      allow get: if isValidId(orderId) && isSignedIn() && (existing().userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isValidId(orderId) && isSignedIn() && incoming().userId == request.auth.uid && isValidOrder(incoming());
+      allow update: if isValidId(orderId) && isSignedIn() && incoming().userId == existing().userId && isValidOrder(incoming()) && (existing().userId == request.auth.uid || isAdmin());
+      allow delete: if isValidId(orderId) && isAdmin();
+    }
+
+    match /community/{userId} {
+      allow read: if isSignedIn();
+      allow create, update: if isValidId(userId) && isOwner(userId) && isValidCommunity(incoming());
+      allow delete: if isValidId(userId) && isOwner(userId);
+    }
+
+    match /feedbacks/{feedbackId} {
+      allow read: if isSignedIn();
+      allow create: if isValidId(feedbackId) && isSignedIn() && isValidFeedback(incoming());
+    }
+
+    match /checkins/{checkInId} {
+      allow read: if isSignedIn();
+      allow create: if isValidId(checkInId) && isSignedIn() && isValidCheckIn(incoming());
+      allow update: if isValidId(checkInId) && isSignedIn() && isValidCheckIn(incoming());
+      allow delete: if isValidId(checkInId) && (isAdmin() || (isSignedIn() && existing().userId == request.auth.uid));
+    }
+  }
+}

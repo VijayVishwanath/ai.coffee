@@ -1,0 +1,103 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Registered guest or cafe staff member profile",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "displayName": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "maxLength": 255 },
+        "photoURL": { "type": "string", "maxLength": 500 },
+        "role": { "type": "string", "enum": ["guest", "barista", "manager"], "maxLength": 20 },
+        "favoriteDrink": { "type": "string", "maxLength": 100 },
+        "loyaltyBeans": { "type": "number" },
+        "createdAt": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["uid", "email"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Specialty coffee or bakery item ticket",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "customerName": { "type": "string", "maxLength": 100 },
+        "totalAmount": { "type": "number" },
+        "status": { "type": "string", "enum": ["received", "queued", "brewing", "ready", "completed"], "maxLength": 20 },
+        "placedAt": { "type": "string", "maxLength": 50 },
+        "estimatedReadyAt": { "type": "string", "maxLength": 50 },
+        "assignedBaristaStation": { "type": "string", "maxLength": 100 },
+        "eventTraceId": { "type": "string", "maxLength": 100 }
+      },
+      "required": ["id", "userId", "totalAmount", "status"]
+    },
+    "CommunityPresence": {
+      "title": "CommunityPresence",
+      "description": "Opt-in serendipity table presence in the cafe",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 100 },
+        "role": { "type": "string", "maxLength": 100 },
+        "tableZone": { "type": "string", "maxLength": 100 },
+        "currentFocus": { "type": "string", "maxLength": 300 },
+        "isOpenToChat": { "type": "boolean" },
+        "updatedAt": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["userId", "name", "tableZone"]
+    },
+    "RoomFeedback": {
+      "title": "RoomFeedback",
+      "description": "Guest sentiment and acoustic comfort feedback",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "feedbackText": { "type": "string", "maxLength": 500 },
+        "sentimentScore": { "type": "number" },
+        "ambientDecibels": { "type": "number" },
+        "timestamp": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["id", "feedbackText"]
+    },
+    "CheckIn": {
+      "title": "CheckIn",
+      "description": "Customer QR code arrival check-in logging real-time cafe occupancy",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "customerName": { "type": "string", "maxLength": 100 },
+        "tableZone": { "type": "string", "maxLength": 100 },
+        "partySize": { "type": "number" },
+        "arrivalTime": { "type": "string", "maxLength": 50 },
+        "status": { "type": "string", "enum": ["active", "departed"], "maxLength": 20 }
+      },
+      "required": ["id", "customerName", "arrivalTime", "status"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User profile document indexed by UID"
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "Orders collection containing active and historical guest orders"
+    },
+    "/community/{userId}": {
+      "schema": { "$ref": "#/entities/CommunityPresence" },
+      "description": "Active in-room community serendipity table presences"
+    },
+    "/feedbacks/{feedbackId}": {
+      "schema": { "$ref": "#/entities/RoomFeedback" },
+      "description": "Customer feedback and sentiment triage logs"
+    },
+    "/checkins/{checkInId}": {
+      "schema": { "$ref": "#/entities/CheckIn" },
+      "description": "Customer arrival check-ins for real-time occupancy and dynamic wait prediction"
+    }
+  }
+}
